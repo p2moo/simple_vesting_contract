@@ -1,0 +1,13 @@
+//How to Create a New Smart Contract
+
+1. Open terminal
+
+2. Select Ubuntu
+
+3. Navigate to folder you want to create the new contract
+
+4. Type in the terminal
+```
+anchor init _ProjectName_
+```
+
