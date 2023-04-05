@@ -11,3 +11,13 @@
 anchor init _ProjectName_
 ```
 
+5. Do stuff
+
+6. Type in terminal
+```
+git init
+git remote add origin _UrlOfGit_
+git add .
+git commit -m "comment"
+git push  --set-upstream origin master
+```
