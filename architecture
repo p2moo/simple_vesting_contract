@@ -2,10 +2,9 @@
 // Front End User Experience
 ======================================
 
-1. Payer inputs duration, payee public key, and the amount of SOL he wishes to deposit
+1. Payer inputs end datetime, payee public key, and the amount of SOL he wishes to deposit
 2. Payer presses deposit
 3. Sign transaction
-4.
 
 ======================================
 // Smart Contract Architecture
@@ -14,12 +13,18 @@
 // Deposits
 
 1. Transfers funds from payer account to escrow account via system call on Solana (no need for smart contract, simply use Solana CLI or Solana js library)
-2. Construct a PDA hash table where the key is the payee public key and the values are "current amount of SOL", "end datetime", "datetime of last action"
+2. Construct a PDA hash table where the key is the payee public key and the values are "current amount of SOL", "end datetime", "last action datetime"
+
+PDA Hash Table Visualization
+| pub key address | (current amount of SOL, end datetime, last action datetime) |
+| pub key address | (current amount of SOL, end datetime, last action datetime) |
+| pub key address | (current amount of SOL, end datetime, last action datetime) |
+| pub key address | (current amount of SOL, end datetime, last action datetime) |
 
 // Withdrawals
 
 1. Pass the public key to retrieve the values from the hash table
 2. Acquire current timestamp from the clock account on Solana
-3. Calculate rate of payout (current amount of sol / [end datetime - datetime of last action ] )
+3. Calculate rate of payout (current amount of sol / [end datetime - last action datetime])
 4. Calculate difference between current timestamp and datetime of last action
 5. Call transfer instructions that allows the payee to withdraw the appropriate amount
