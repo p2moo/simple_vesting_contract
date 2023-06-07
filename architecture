@@ -26,5 +26,5 @@ PDA Hash Table Visualization
 1. Pass the public key to retrieve the values from the hash table
 2. Acquire current timestamp from the clock account on Solana
 3. Calculate rate of payout (current amount of sol / [end datetime - last action datetime])
-4. Calculate difference between current timestamp and datetime of last action
+4. Calculate the amount of SOL that can be withdrawn ((current datetime - last action datetime) \* rate of payout)
 5. Call transfer instructions that allows the payee to withdraw the appropriate amount
