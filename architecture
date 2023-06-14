@@ -28,3 +28,8 @@ PDA Hash Table Visualization
 3. Calculate rate of payout (current amount of sol / [end datetime - last action datetime])
 4. Calculate the amount of SOL that can be withdrawn ((current datetime - last action datetime) \* rate of payout)
 5. Call transfer instructions that allows the payee to withdraw the appropriate amount
+6. Update the current amount of SOL and last action datetime
+
+// API
+
+1. Get balance = current amount of SOL

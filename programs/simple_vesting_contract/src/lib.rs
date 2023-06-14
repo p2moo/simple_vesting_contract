@@ -25,6 +25,20 @@ pub mod simple_vesting_contract {
             vesting_data.last_action_datetime=clock.unix_timestamp;
             return Ok(()); 
         }
+
+    pub fn withdraw(ctx: Context<Withdraw>) -> Result<()> {
+        let clock=Clock::get()?;
+        let current_datetime = clock.unix_timestamp;
+        let vesting_data=&mut ctx.accounts.vesting_data;
+        // This rate is in lamports per second
+        let payout_rate = vesting_data.current_amount /
+        (vesting_data.end_datetime - vesting_data.last_action_datetime);
+        // This is in lamports
+        let withdrawal_amount = (current_datetime - vesting_data.last_action_datetime)
+        * payout_rate;
+        // To-do: Create if statement that if current_datetime >= end_datetime, 
+        // then withdrawl_amount=current_amount
+    }
 }
 
 // A struct representing the state of a vesting contract.
@@ -32,7 +46,8 @@ pub mod simple_vesting_contract {
 pub struct VestingData {
   current_amount: u64, // The current amount vested.
   end_datetime: u64, // The datetime when the vesting ends.
-  last_action_datetime: u64 // The datetime of the last action.
+  last_action_datetime: u64, // The datetime of the last action.
+  bump: u8
 }
 
 // A struct representing the context of the create_vesting function.
@@ -47,9 +62,21 @@ pub struct CreateVesting<'info> {
         init,
         payer = user,
         space = 8 + 8 + 8 + 8, // The size of the account to be created. It's a sum of the sizes of the fields in VestingData.
-        seeds = [b"vesting-data", user.key().as_ref()], bump
+        seeds = [b"vesting-data", user.key().as_ref()], 
+        bump
     )]
     pub vesting_data: Account<'info, VestingData>,
     // A reference to the system program, which is used to create the vesting_data account.
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct Withdraw<'info>{
+    pub user: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"vesting-data", user.key().as_ref()], 
+        bump = vesting_data.bump
+    )]
+    pub vesting_data: Account<'info, VestingData>,
 }
