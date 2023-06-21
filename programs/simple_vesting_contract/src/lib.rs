@@ -34,10 +34,23 @@ pub mod simple_vesting_contract {
         let payout_rate = vesting_data.current_amount /
         (vesting_data.end_datetime - vesting_data.last_action_datetime);
         // This is in lamports
-        let withdrawal_amount = (current_datetime - vesting_data.last_action_datetime)
-        * payout_rate;
-        // To-do: Create if statement that if current_datetime >= end_datetime, 
-        // then withdrawl_amount=current_amount
+        let withdrawal_amount = 
+        if current_datetime >= end_datetime {vesting_data.current_amount} // This is to handle dust
+        else {(current_datetime - vesting_data.last_action_datetime)* payout_rate};
+
+        let transfer_instruction = anchor_lang::solana_program::system_instruction::transfer(
+            &ctx.accounts.escrow_account.key(),
+            &ctx.accounts.user.key(),
+            withdrawal_amount,
+        );
+        anchor_lang::solana_program::program::invoke(
+            &transfer_instruction,
+            &[
+                ctx.accounts.escrow_account.to_account_info(),
+                ctx.accounts.user.to_account_info(),
+            ],
+        );
+        // To-do: Update the current amount of SOL and last action datetime
     }
 }
 
@@ -79,4 +92,5 @@ pub struct Withdraw<'info>{
         bump = vesting_data.bump
     )]
     pub vesting_data: Account<'info, VestingData>,
+    pub escrow_account:Signer<'info>,
 }
