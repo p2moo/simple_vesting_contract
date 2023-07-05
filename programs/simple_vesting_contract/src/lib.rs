@@ -15,7 +15,7 @@ pub mod simple_vesting_contract {
     // with specified current_amount and end_datetime.
   	pub fn create_vesting(ctx: Context<CreateVesting>, 
         current_amount:u64, 
-        end_datetime:u64) -> Result<()> {
+        end_datetime:i64) -> Result<()> {
             // Modify the vesting_data account state 
             // with the new current_amount and end_datetime.
             let vesting_data=&mut ctx.accounts.vesting_data;
@@ -32,11 +32,11 @@ pub mod simple_vesting_contract {
         let vesting_data=&mut ctx.accounts.vesting_data;
         // This rate is in lamports per second
         let payout_rate = vesting_data.current_amount /
-        (vesting_data.end_datetime - vesting_data.last_action_datetime);
+        ((vesting_data.end_datetime - vesting_data.last_action_datetime)as u64);
         // This is in lamports
         let withdrawal_amount = 
-        if current_datetime >= end_datetime {vesting_data.current_amount} // This is to handle dust
-        else {(current_datetime - vesting_data.last_action_datetime)* payout_rate};
+        if current_datetime >= vesting_data.end_datetime {vesting_data.current_amount} // This is to handle dust
+        else {((current_datetime - vesting_data.last_action_datetime)as u64)* payout_rate};
 
         let transfer_instruction = anchor_lang::solana_program::system_instruction::transfer(
             &ctx.accounts.escrow_account.key(),
@@ -49,8 +49,15 @@ pub mod simple_vesting_contract {
                 ctx.accounts.escrow_account.to_account_info(),
                 ctx.accounts.user.to_account_info(),
             ],
-        );
-        // To-do: Update the current amount of SOL and last action datetime
+        )?;
+        // Update the current amount of SOL and last action datetime
+        let current_amount = vesting_data.current_amount - withdrawal_amount;
+        vesting_data.current_amount = current_amount;
+        vesting_data.last_action_datetime = current_datetime;
+        Ok(())
+    }
+    pub fn get_remaining_amount(ctx: Context<GetRemainingAmount>) -> Result<u64>{
+        Ok(ctx.accounts.vesting_data.current_amount)
     }
 }
 
@@ -58,8 +65,8 @@ pub mod simple_vesting_contract {
 #[account]
 pub struct VestingData {
   current_amount: u64, // The current amount vested.
-  end_datetime: u64, // The datetime when the vesting ends.
-  last_action_datetime: u64, // The datetime of the last action.
+  end_datetime: i64, // The datetime when the vesting ends.
+  last_action_datetime: i64, // The datetime of the last action.
   bump: u8
 }
 
@@ -93,4 +100,9 @@ pub struct Withdraw<'info>{
     )]
     pub vesting_data: Account<'info, VestingData>,
     pub escrow_account:Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct GetRemainingAmount<'info>{
+    pub vesting_data: Account<'info, VestingData>,
 }
