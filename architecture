@@ -16,10 +16,9 @@
 2. Construct a PDA hash table where the key is the payee public key and the values are "current amount of SOL", "end datetime", "last action datetime"
 
 PDA Hash Table Visualization
-| pub key address | (current amount of SOL, end datetime, last action datetime) |
-| pub key address | (current amount of SOL, end datetime, last action datetime) |
-| pub key address | (current amount of SOL, end datetime, last action datetime) |
-| pub key address | (current amount of SOL, end datetime, last action datetime) |
+| [recipient_public_key] | [current_SOL] | [end_datetime] | [last_action_datetime] |
+| [recipient_public_key] | [current_SOL] | [end_datetime] | [last_action_datetime] |
+| [recipient_public_key] | [current_SOL] | [end_datetime] | [last_action_datetime] |
 
 // Withdrawals
 
@@ -29,6 +28,18 @@ PDA Hash Table Visualization
 4. Calculate the amount of SOL that can be withdrawn ((current datetime - last action datetime) \* rate of payout)
 5. Call transfer instructions that allows the payee to withdraw the appropriate amount
 6. Update the current amount of SOL and last action datetime
+
+// Cancellation
+
+1. Depositor keys in Recepient public key
+2. Depositor initiates to cancel the vesting
+3. Check the current amount of SOL
+4. Return the current amount of SOL to Depositor
+
+TO-DO
+
+- think of the keys required (current thought is dep pub key, recp pub key, version)
+- figure out cancellation process
 
 // API
 

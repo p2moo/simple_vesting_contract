@@ -38,18 +38,18 @@ pub mod simple_vesting_contract {
         if current_datetime >= vesting_data.end_datetime {vesting_data.current_amount} // This is to handle dust
         else {((current_datetime - vesting_data.last_action_datetime)as u64)* payout_rate};
 
-        let transfer_instruction = anchor_lang::solana_program::system_instruction::transfer(
-            &ctx.accounts.escrow_account.key(),
-            &ctx.accounts.user.key(),
-            withdrawal_amount,
+        // use anchor_lang::system_program::{Transfer, transfer};
+
+        let cpi_context = CpiContext::new_with_signer(
+            ctx.accounts.system_program.to_account_info(), 
+            Transfer {
+                from: ctx.accounts.escrow_account.to_account_info(),
+                to: ctx.accounts.recepient.clone(),
+            },
+            &[&[b"escrow-seeds"]]
         );
-        anchor_lang::solana_program::program::invoke(
-            &transfer_instruction,
-            &[
-                ctx.accounts.escrow_account.to_account_info(),
-                ctx.accounts.user.to_account_info(),
-            ],
-        )?;
+        
+        transfer(cpi_context, withdrawal_amount)?;
         // Update the current amount of SOL and last action datetime
         let current_amount = vesting_data.current_amount - withdrawal_amount;
         vesting_data.current_amount = current_amount;
@@ -73,16 +73,16 @@ pub struct VestingData {
 // A struct representing the context of the create_vesting function.
 #[derive(Accounts)]
 pub struct CreateVesting<'info> {
-    // A mutable reference to the user's account who signs the transaction.
     #[account(mut)]
-    pub user: Signer<'info>,
-    // An account to hold the VestingData, which is created and paid for by the user.
+    pub depositor: Signer<'info>,
+    pub recipient: AccountInfo<'info>,
+    // An account to hold the VestingData, which is created and paid for by the recipient.
     // space: 8 discriminator + 8 current_amount + 8 end_datetime + 8 last_action_datetime
     #[account(
         init,
-        payer = user,
+        payer = depositor,
         space = 8 + 8 + 8 + 8, // The size of the account to be created. It's a sum of the sizes of the fields in VestingData.
-        seeds = [b"vesting-data", user.key().as_ref()], 
+        seeds = [b"vesting-data", recipient.key().as_ref()], 
         bump
     )]
     pub vesting_data: Account<'info, VestingData>,
@@ -92,14 +92,17 @@ pub struct CreateVesting<'info> {
 
 #[derive(Accounts)]
 pub struct Withdraw<'info>{
-    pub user: Signer<'info>,
+    #[account(mut)]
+    pub recipient: AccountInfo<'info>,
     #[account(
         mut,
-        seeds = [b"vesting-data", user.key().as_ref()], 
+        seeds = [b"vesting-data", recipient.key().as_ref()], 
         bump = vesting_data.bump
     )]
     pub vesting_data: Account<'info, VestingData>,
-    pub escrow_account:Signer<'info>,
+    #[account(mut)]
+    pub escrow_account: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
