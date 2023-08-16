@@ -1,5 +1,7 @@
 // Imports all the necessary types and macros from the anchor_lang crate.
 use anchor_lang::prelude::*;
+use anchor_lang::system_program::{Transfer, transfer};
+use anchor_lang::AccountsClose;
 
 // A unique ID for the program, also known as programId in Solana, 
 // which is a public key that identifies your program on the blockchain.
@@ -46,7 +48,7 @@ pub mod simple_vesting_contract {
             ctx.accounts.system_program.to_account_info(), 
             Transfer {
                 from: ctx.accounts.escrow_account.to_account_info(),
-                to: ctx.accounts.recepient.clone(),
+                to: ctx.accounts.recipient.clone(),
             },
             &[&[b"escrow-seeds"]]
         );
@@ -57,7 +59,7 @@ pub mod simple_vesting_contract {
         vesting_data.current_amount = current_amount;
         vesting_data.last_action_datetime = current_datetime;
         if current_amount  == 0 {
-            ctx.accounts.vesting_data.close(ctx.accounts.recepient)?;
+            ctx.accounts.vesting_data.close(ctx.accounts.recipient.to_account_info())?;
         }
         Ok(())
     }
@@ -67,13 +69,13 @@ pub mod simple_vesting_contract {
             ctx.accounts.system_program.to_account_info(), 
             Transfer {
                 from: ctx.accounts.escrow_account.to_account_info(),
-                to: ctx.accounts.depositor.clone(),
+                to: ctx.accounts.depositor.to_account_info(),
             },
             &[&[b"escrow-seeds"]]
         );
         transfer(cpi_context, current_amount)?;
-        //Close vesting account and return funds to recepient
-        ctx.accounts.vesting_data.close(ctx.accounts.recepient.to_account_info())?;
+        //Close vesting account and return funds to recipient
+        ctx.accounts.vesting_data.close(ctx.accounts.recipient.to_account_info())?;
         Ok(())
     }
 
@@ -96,6 +98,7 @@ pub struct VestingData {
 pub struct CreateVesting<'info> {
     #[account(mut)]
     pub depositor: Signer<'info>,
+    /// CHECK: This recepient key is currently used to derive a PDA. Later on, we will need this recepient key for withdrawals.
     pub recipient: AccountInfo<'info>,
     // An account to hold the VestingData, which is created and paid for by the recipient.
     // space: 8 discriminator + 8 current_amount + 8 end_datetime + 8 last_action_datetime
@@ -113,8 +116,11 @@ pub struct CreateVesting<'info> {
 
 #[derive(Accounts)]
 pub struct Withdraw<'info>{
+    /// CHECK: The recipient is used to receive funds
     #[account(mut)]
     pub recipient: AccountInfo<'info>,
+    /// CHECK: The depositor account will be returned rent after closing the vesting data account    
+    #[account(mut)]
     pub depositor: AccountInfo<'info>,
     #[account(
         mut,
@@ -134,6 +140,7 @@ pub struct GetRemainingAmount<'info>{
 
 #[derive(Accounts)]
 pub struct CancelVesting<'info>{
+    /// CHECK: We need to use recipient to derive the PDA
     pub recipient: AccountInfo<'info>,
     #[account(mut)]
     pub depositor: Signer<'info>,

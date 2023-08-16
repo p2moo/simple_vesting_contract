@@ -28,19 +28,23 @@ PDA Hash Table Visualization
 4. Calculate the amount of SOL that can be withdrawn ((current datetime - last action datetime) \* rate of payout)
 5. Call transfer instructions that allows the payee to withdraw the appropriate amount
 6. Update the current amount of SOL and last action datetime
+7. If all the SOL is withdrawn, close vesting data account
 
 // Cancellation
 
 1. Depositor keys in Recepient public key
-2. Depositor initiates to cancel the vesting
+2. Depositor initiates to cancel the vesting (nobody else can cancel)
 3. Check the current amount of SOL
 4. Return the current amount of SOL to Depositor
-
-TO-DO
-
-- think of the keys required (current thought is dep pub key, recp pub key, version)
-- figure out cancellation process
+5. Close vesting data account
 
 // API
 
 1. Get balance = current amount of SOL
+
+TO-DO
+
+next class - we are going to deploy contract
+and simulate the whole process (real usecase)
+we are going to write codes to interact with the contract
+[or we can make a simple front end UI]
