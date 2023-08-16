@@ -35,7 +35,9 @@ pub mod simple_vesting_contract {
         ((vesting_data.end_datetime - vesting_data.last_action_datetime)as u64);
         // This is in lamports
         let withdrawal_amount = 
-        if current_datetime >= vesting_data.end_datetime {vesting_data.current_amount} // This is to handle dust
+        // If this is the last withdrawal, remove everything
+        if current_datetime >= vesting_data.end_datetime {vesting_data.current_amount} 
+        // If not last withdrawal, then calculate as usual
         else {((current_datetime - vesting_data.last_action_datetime)as u64)* payout_rate};
 
         // use anchor_lang::system_program::{Transfer, transfer};
@@ -54,8 +56,27 @@ pub mod simple_vesting_contract {
         let current_amount = vesting_data.current_amount - withdrawal_amount;
         vesting_data.current_amount = current_amount;
         vesting_data.last_action_datetime = current_datetime;
+        if current_amount  == 0 {
+            ctx.accounts.vesting_data.close(ctx.accounts.recepient)?;
+        }
         Ok(())
     }
+    pub fn cancel_vesting(ctx: Context<CancelVesting>) -> Result<()>{
+        let current_amount = ctx.accounts.vesting_data.current_amount;
+        let cpi_context = CpiContext::new_with_signer(
+            ctx.accounts.system_program.to_account_info(), 
+            Transfer {
+                from: ctx.accounts.escrow_account.to_account_info(),
+                to: ctx.accounts.depositor.clone(),
+            },
+            &[&[b"escrow-seeds"]]
+        );
+        transfer(cpi_context, current_amount)?;
+        //Close vesting account and return funds to recepient
+        ctx.accounts.vesting_data.close(ctx.accounts.recepient.to_account_info())?;
+        Ok(())
+    }
+
     pub fn get_remaining_amount(ctx: Context<GetRemainingAmount>) -> Result<u64>{
         Ok(ctx.accounts.vesting_data.current_amount)
     }
@@ -82,7 +103,7 @@ pub struct CreateVesting<'info> {
         init,
         payer = depositor,
         space = 8 + 8 + 8 + 8, // The size of the account to be created. It's a sum of the sizes of the fields in VestingData.
-        seeds = [b"vesting-data", recipient.key().as_ref()], 
+        seeds = [b"vesting-data", recipient.key().as_ref(), depositor.key().as_ref()], 
         bump
     )]
     pub vesting_data: Account<'info, VestingData>,
@@ -94,9 +115,10 @@ pub struct CreateVesting<'info> {
 pub struct Withdraw<'info>{
     #[account(mut)]
     pub recipient: AccountInfo<'info>,
+    pub depositor: AccountInfo<'info>,
     #[account(
         mut,
-        seeds = [b"vesting-data", recipient.key().as_ref()], 
+        seeds = [b"vesting-data", recipient.key().as_ref(), depositor.key().as_ref()], 
         bump = vesting_data.bump
     )]
     pub vesting_data: Account<'info, VestingData>,
@@ -108,4 +130,20 @@ pub struct Withdraw<'info>{
 #[derive(Accounts)]
 pub struct GetRemainingAmount<'info>{
     pub vesting_data: Account<'info, VestingData>,
+}
+
+#[derive(Accounts)]
+pub struct CancelVesting<'info>{
+    pub recipient: AccountInfo<'info>,
+    #[account(mut)]
+    pub depositor: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"vesting-data", recipient.key().as_ref(), depositor.key().as_ref()], 
+        bump = vesting_data.bump
+    )]
+    pub vesting_data: Account<'info, VestingData>,
+    #[account(mut)]
+    pub escrow_account: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }
