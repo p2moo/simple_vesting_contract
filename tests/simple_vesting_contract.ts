@@ -40,9 +40,50 @@ describe("simple_vesting_contract", () => {
       },
       "confirmed"
     );
+    const vestingAmount = 1 * anchor.web3.LAMPORTS_PER_SOL;
+    //Have the depositor transfer funds to escrow
+    let transaction = new anchor.web3.Transaction().add(
+      anchor.web3.SystemProgram.transfer({
+        fromPubkey: depositor.publicKey,
+        toPubkey: escrowAccount,
+        lamports: vestingAmount,
+      })
+    );
+    await anchor.web3.sendAndConfirmTransaction(connection, transaction, [
+      depositor,
+    ]);
 
-    // To-do: have the depositor transfer funds to escrow
-    // Then call create vesting function
-    // For lucas - how to make contract safer so it doesn't complain
+    // Call create vesting function
+    const [vestingDataAccount, vestingDataAccountBump] =
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [depositor.publicKey.toBuffer(), recipient.toBuffer(), version],
+        program.programId
+      );
+
+    transaction = new anchor.web3.Transaction().add(
+      anchor.web3.SystemProgram.createAccount({
+        fromPubkey: depositor.publicKey,
+        space: 32,
+        newAccountPubkey: vestingDataAccount,
+        programId: program.programId,
+        lamports: 0.0011136 * anchor.web3.LAMPORTS_PER_SOL,
+      })
+    );
+    await anchor.web3.sendAndConfirmTransaction(connection, transaction, [
+      depositor,
+    ]);
+
+    let date: Date = new Date("2024-06-31");
+    const endDateTime = parseInt((date.getTime() / 1000).toFixed(0));
+    await program.methods
+      .createVesting(new anchor.BN(vestingAmount), new anchor.BN(endDateTime))
+      .accounts({
+        depositor: depositor.publicKey,
+        vestingData: vestingDataAccount,
+      })
+      .signers([depositor])
+      .rpc();
   });
 });
+
+// next class: figure out anchor test

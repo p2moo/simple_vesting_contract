@@ -43,7 +43,7 @@ pub mod simple_vesting_contract {
         else {((current_datetime - vesting_data.last_action_datetime)as u64)* payout_rate};
 
         // use anchor_lang::system_program::{Transfer, transfer};
-
+        // Transfer funds from escrow account to recipient
         let cpi_context = CpiContext::new_with_signer(
             ctx.accounts.system_program.to_account_info(), 
             Transfer {
@@ -98,17 +98,8 @@ pub struct VestingData {
 pub struct CreateVesting<'info> {
     #[account(mut)]
     pub depositor: Signer<'info>,
-    /// CHECK: This recepient key is currently used to derive a PDA. Later on, we will need this recepient key for withdrawals.
-    pub recipient: AccountInfo<'info>,
     // An account to hold the VestingData, which is created and paid for by the recipient.
     // space: 8 discriminator + 8 current_amount + 8 end_datetime + 8 last_action_datetime
-    #[account(
-        init,
-        payer = depositor,
-        space = 8 + 8 + 8 + 8, // The size of the account to be created. It's a sum of the sizes of the fields in VestingData.
-        seeds = [b"vesting-data", recipient.key().as_ref(), depositor.key().as_ref()], 
-        bump
-    )]
     pub vesting_data: Account<'info, VestingData>,
     // A reference to the system program, which is used to create the vesting_data account.
     pub system_program: Program<'info, System>,

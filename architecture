@@ -42,11 +42,8 @@ PDA Hash Table Visualization
 
 1. Get balance = current amount of SOL
 
-TO-DO
+======================================
+// Test The Contract
+======================================
 
-next class - we are going to deploy contract
-and simulate the whole process (real usecase)
-we are going to write codes to interact with the contract
-[or we can make a simple front end UI]
-
-for lucas - how to make contract safer so it doesn't complain
+1. Write code in typescript to interact with the contract
